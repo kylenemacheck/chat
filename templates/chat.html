@@ -1,0 +1,203 @@
+<html>
+	<head>
+		<title>Chat Thing</title>
+    		<style type="text/css">
+			body	         { padding-left:40px; background:#212121; font-family:arial; }
+			input, textarea  { font-family: courier new; font-size: 12px; }
+			#content         { width:800px; text-align:left; margin-left:60px; }
+			#chatwindow      { border:1px solid #aaaaaa; padding:4px; background:#424242; color:white; }
+			#chatnick        { border: none; border-bottom:1px solid #aaaaaa; padding:4px; background:#212121; color: white}
+			#chatmsg         { border: none; border-bottom:1px solid #aaaaaa; padding:4px; background:#212121; color: white}
+		</style>
+    	</head>
+    	<body>
+		<center>
+        		<div id="content">
+        			<textarea id="chatwindow" rows="19" cols="95" readonly></textarea><br>
+            			<input id="chatnick" type="text" size="9" maxlength="10" placeholder="username">&nbsp;
+            			<input id="chatmsg" type="text" size="80" maxlength="80"  onkeyup="keyup(event.keyCode);" placeholder="message">
+            			<input type="button" value="send" onclick="submit_msg();" style="cursor:pointer;border:1px solid gray;"><br><br>
+        		</div>
+		</center>
+	</body>
+</html>
+
+<script type="text/javascript">
+	
+	var nickmaxlength = 10;
+	var http_request = false;
+	var http_request2 = false;
+	var intUpdate;
+	
+	/* http_request for writing */
+	
+	function ajax_request(url)
+	{
+		http_request = false;
+		if(window.XMLHttpRequest)
+		{
+			http_request = new XMLHttpRequest();
+			if(http_request.overrideMimeType)
+				http_request.overrideMimeType('text/xml');
+		}
+		else if(window.ActiveXObject)
+		{
+			try
+			{
+				http_request=new ActiveXObject("Msxml2.XMLHTTP");
+			}
+			catch(e)
+			{
+				try
+				{
+					http_request=new ActiveXObject("Microsoft.XMLHTTP");
+				}
+				catch(e)
+				{
+				}
+			}
+		}
+		
+		if(!http_request)
+		{
+			alert('Giving up :( Cannot create an XMLHTTP instance');
+			return false;
+		}
+
+		http_request.onreadystatechange = alertContents;
+		http_request.open('GET',url,true);
+		http_request.send(null);
+	}
+
+	function alertContents()
+	{
+		if(http_request.readyState == 4)
+		{
+			if(http_request.status == 200)
+				rec_response(http_request.responseText);
+		}
+	}
+
+	/* http_request for reading */
+	function ajax_request2(url)
+	{
+		http_request2=false;
+		if(window.XMLHttpRequest)
+		{
+			http_request2=new XMLHttpRequest();
+			if(http_request2.overrideMimeType)
+				http_request2.overrideMimeType('text/xml');
+		}
+		else if(window.ActiveXObject)
+		{
+			try
+			{
+				http_request2=new ActiveXObject("Msxml2.XMLHTTP");
+			}
+			catch(e)
+			{
+				try
+				{
+					http_request2=new ActiveXObject("Microsoft.XMLHTTP");
+				}
+				catch(e)
+				{
+				}
+			}
+		}
+
+		if(!http_request2)
+		{
+			alert('Giving up :( Cannot create an XMLHTTP instance');
+			return false;
+		}
+		http_request2.onreadystatechange = alertContents2;
+		http_request2.open('GET',url,true);
+		http_request2.send(null);
+	}
+	
+	function alertContents2()
+	{
+		if(http_request2.readyState == 4)
+		{
+			if(http_request2.status == 200)
+				rec_chatcontent(http_request2.responseText);
+		}
+	}
+	
+	/* chat stuff */
+	chatmsg.focus()
+	var show_newmsg_on_bottom = 1;
+	var waittime = 3000;
+	intUpdate = window.setTimeout("read_cont();", waittime);
+	
+	function read_cont()
+	{
+		// get returned value from a php function and use hat as the output text in the text area
+		ajax_request2("chat.txt?x=");
+	}
+
+	function keyup(arg1)
+	{
+		if (arg1 == 13) 
+			submit_msg(); 
+	}
+
+	function submit_msg()
+	{
+		clearTimeout(intUpdate);
+
+		if (chatnick.value == "") 
+		{ 
+			check = prompt("please enter username:"); 
+			if (check == "") 
+				check = "anon"; 
+			chatnick.value = check; 
+		}
+
+		if (chatnick.value.length > nickmaxlength)
+			chatnick.value = chatnick.value.substring(0,nickmaxlength);
+		
+		// this is for the spaces after the username 
+		spaces = "";
+		for(i = 0; i < (nickmaxlength - chatnick.value.length); i++)
+			spaces += " "; 
+		v = chatwindow.value.substring(chatwindow.value.indexOf("\n")) + "\n" + chatnick.value + spaces + "| " + chatmsg.value;
+		
+		// this is where the message goes to the window
+		if (chatmsg.value != "")
+			chatwindow.value = v; 
+		
+		ajax_request("/read?line=" + escape(chatnick.value) + ":" + escape(chatmsg.value));
+
+		chatmsg.value = ""; 
+		intUpdate = window.setTimeout("read_cont();", waittime);
+	}
+	
+	function rec_response(str1)
+	{ 
+	}
+	
+	function rec_chatcontent(cont1)
+	{
+		if (cont1 != "") 
+		{
+        		out1 = unescape(cont1);
+        		
+			if (show_newmsg_on_bottom == 0) 
+			{ 
+				out1 = ""; 
+				while (cont1.indexOf("\n") > -1) 
+				{ 
+					out1 = cont1.substr(0, cont1.indexOf("\n")) + "\n" + out1; 
+					cont1 = cont1.substr(cont1.indexOf("\n") + 1); 
+					out1 = unescape(out1); 
+				} 
+			}
+        		
+			if (chatwindow.value != out1)  
+				chatwindow.value = msg1.trim();
+        		intUpdate = window.setTimeout("read_cont()", waittime);
+    		}
+	}
+</script>
